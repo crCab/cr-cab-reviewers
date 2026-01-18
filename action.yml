@@ -1,0 +1,25 @@
+name: 'CR Cab Reviewers'
+description: 'Automatically assign reviewers based on PR urgency from CR Cab API'
+author: 'CR Cab'
+inputs:
+  cr_cab_api_key:
+    description: 'API key for CR Cab service'
+    required: true
+  checkbox_p0_text:
+    description: 'Text to match for P0 urgency checkbox'
+    required: false
+    default: 'P0'
+  checkbox_p1_text:
+    description: 'Text to match for P1 urgency checkbox'
+    required: false
+    default: 'P1'
+  checkbox_p2_text:
+    description: 'Text to match for P2 urgency checkbox'
+    required: false
+    default: 'P2'
+  seed:
+    description: 'Optional seed for stable randomness per PR'
+    required: false
+runs:
+  using: 'node24'
+  main: 'src/index.js'
