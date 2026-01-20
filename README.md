@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign reviewer from CR Cab
-        uses: your-org/cr-cab-reviewers@v1
+        uses: cr-cab-reviewers/action@v1
         with:
           cr_cab_api_key: ${{ secrets.CR_CAB_API_KEY }}
 ```
@@ -111,7 +111,7 @@ If your PR template uses different text for urgency levels:
 
 ```yaml
 - name: Assign reviewer
-  uses: your-org/cr-cab-reviewers@v1
+  uses: cr-cab-reviewers/action@v1
   with:
     cr_cab_api_key: ${{ secrets.CR_CAB_API_KEY }}
     checkbox_p0_text: "URGENT"
@@ -125,7 +125,7 @@ For deterministic reviewer selection (useful for testing), provide a seed:
 
 ```yaml
 - name: Assign reviewer
-  uses: your-org/cr-cab-reviewers@v1
+  uses: cr-cab-reviewers/action@v1
   with:
     cr_cab_api_key: ${{ secrets.CR_CAB_API_KEY }}
     seed: "my-stable-seed"

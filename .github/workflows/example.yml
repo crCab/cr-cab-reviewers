@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign reviewer from CR Cab
-        uses: ./
+        uses: cr-cab-reviewers/action@v1
         with:
           cr_cab_api_key: ${{ secrets.CR_CAB_API_KEY }}

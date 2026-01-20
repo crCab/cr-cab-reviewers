@@ -124,15 +124,27 @@ async function fetchReviewers(apiKey, urgency) {
 
   const data = await response.json();
 
-  // Support both { reviewers: [] } and [] formats
+  // API returns { reviewers: [{ githubUsername: "..." }], count: N, severity: "..." }
+  let reviewerList = [];
+  
   if (Array.isArray(data)) {
-    return data;
-  }
-  if (data.reviewers && Array.isArray(data.reviewers)) {
-    return data.reviewers;
+    reviewerList = data;
+  } else if (data.reviewers && Array.isArray(data.reviewers)) {
+    reviewerList = data.reviewers;
+  } else {
+    throw new Error('Invalid API response format');
   }
 
-  throw new Error('Invalid API response format');
+  // Extract githubUsername from objects if needed
+  return reviewerList.map(reviewer => {
+    if (typeof reviewer === 'string') {
+      return reviewer;
+    }
+    if (reviewer && reviewer.githubUsername) {
+      return reviewer.githubUsername;
+    }
+    throw new Error(`Invalid reviewer format: ${JSON.stringify(reviewer)}`);
+  });
 }
 
 function selectRandomReviewer(reviewers, seed, prNumber) {
