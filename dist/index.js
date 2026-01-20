@@ -29973,7 +29973,8 @@ async function run() {
     }
 
     if (!availableReviewers || availableReviewers.length === 0) {
-      core.warning(`No reviewers available for ${urgency}`);
+      // API succeeded but returned empty list - this indicates a configuration issue
+      core.warning(`No reviewers available for ${urgency}. This may indicate: 1) No members have set availability for this urgency level, 2) No members have GitHub usernames configured, or 3) Organization configuration issue.`);
       return;
     }
 
@@ -30044,8 +30045,8 @@ function detectUrgency(prBody, checkboxP0, checkboxP1, checkboxP2) {
   if (foundP1) return 'p1';
   if (foundP2) return 'p2';
 
-  // Default to P2 if none checked
-  return 'p2';
+  // Default to P1 if none checked (p1 is normal priority)
+  return 'p1';
 }
 
 async function fetchReviewers(apiKey, urgency, failOnApiError = false) {

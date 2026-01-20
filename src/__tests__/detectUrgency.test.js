@@ -20,10 +20,10 @@ describe('detectUrgency', () => {
   // Since the function isn't exported, we'll test it via a wrapper
   // or refactor the code to export it. For now, let's test the logic.
 
-  test('returns p2 when no urgency is detected', () => {
+  test('returns p1 when no urgency is detected (default to normal priority)', () => {
     const prBody = 'This is a PR with no urgency checkboxes';
     const result = detectUrgency(prBody, 'P0', 'P1', 'P2');
-    expect(result).toBe('p2');
+    expect(result).toBe('p1');
   });
 
   test('returns p0 when P0 checkbox is checked', () => {

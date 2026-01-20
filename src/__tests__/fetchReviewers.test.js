@@ -230,4 +230,23 @@ describe('fetchReviewers', () => {
       })
     );
   });
+
+  test('returns empty array when API succeeds but returns empty reviewers list', async () => {
+    const mockData = {
+      reviewers: [],
+      count: 0,
+      severity: 'p1',
+    };
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockData,
+    });
+
+    const result = await fetchReviewers(apiKey, 'p1', false);
+    expect(result).toEqual([]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    // Should not log warnings for successful API calls with empty results
+    // (the warning is logged in the main run() function, not in fetchReviewers)
+  });
 });

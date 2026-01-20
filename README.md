@@ -65,7 +65,7 @@ Please select the urgency level for this PR:
 The action will:
 - Detect the checked urgency checkbox
 - If multiple are checked, use the highest priority (P0 > P1 > P2)
-- If none are checked, default to P2
+- If none are checked, default to P1 (normal priority)
 
 ## Inputs
 
