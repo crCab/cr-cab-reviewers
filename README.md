@@ -146,6 +146,20 @@ For deterministic reviewer selection (useful for testing), provide a seed:
 - Check that the CR Cab service is available
 - Review the workflow logs for specific error messages
 
+## Development
+
+### Building
+
+This action uses [@vercel/ncc](https://github.com/vercel/ncc) to bundle the code and dependencies into a single file for distribution.
+
+After making changes to `src/index.js`:
+
+1. Install dependencies: `npm install`
+2. Build the bundled output: `npm run build`
+3. Commit the updated `dist/index.js` file
+
+The `dist/` directory must be committed to the repository so that GitHub Actions can run the action without installing dependencies. A CI workflow verifies that `dist/` is up to date on pull requests.
+
 ## License
 
 MIT

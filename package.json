@@ -4,7 +4,7 @@
   "description": "GitHub Action to automatically assign reviewers based on PR urgency via CR Cab API",
   "main": "src/index.js",
   "scripts": {
-    "build": "echo 'No build step required'",
+    "build": "ncc build src/index.js -o dist",
     "test": "echo 'Tests not yet implemented'",
     "lint": "echo 'Linting not yet configured'"
   },
@@ -19,6 +19,9 @@
   "dependencies": {
     "@actions/core": "^1.10.1",
     "@actions/github": "^6.0.0"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.1"
   },
   "engines": {
     "node": ">=24"
