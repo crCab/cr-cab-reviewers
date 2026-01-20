@@ -20,6 +20,10 @@ inputs:
   seed:
     description: 'Optional seed for stable randomness per PR'
     required: false
+  failOnApiError:
+    description: 'If true, fail the workflow on API errors (4xx/5xx). Default: false (non-blocking)'
+    required: false
+    default: 'false'
 runs:
   using: 'node20'
   main: 'dist/index.js'

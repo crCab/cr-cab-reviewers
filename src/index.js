@@ -11,6 +11,7 @@ async function run() {
     const checkboxP1 = core.getInput('checkbox_p1_text') || 'P1';
     const checkboxP2 = core.getInput('checkbox_p2_text') || 'P2';
     const seed = core.getInput('seed');
+    const failOnApiError = core.getInput('failOnApiError') === 'true';
 
     // Get PR context
     const context = github.context;
@@ -30,7 +31,20 @@ async function run() {
     core.info(`Detected urgency: ${urgency}`);
 
     // Fetch available reviewers from CR Cab API
-    const availableReviewers = await fetchReviewers(apiKey, urgency);
+    let availableReviewers;
+    try {
+      availableReviewers = await fetchReviewers(apiKey, urgency, failOnApiError);
+    } catch (error) {
+      // Error handling is done inside fetchReviewers, but if it still throws
+      // and failOnApiError is true, we need to propagate it
+      if (failOnApiError) {
+        throw error;
+      }
+      // Otherwise, log and exit gracefully
+      core.warning(`Failed to fetch reviewers: ${error.message}`);
+      return;
+    }
+
     if (!availableReviewers || availableReviewers.length === 0) {
       core.warning(`No reviewers available for ${urgency}`);
       return;
@@ -107,44 +121,98 @@ function detectUrgency(prBody, checkboxP0, checkboxP1, checkboxP2) {
   return 'p2';
 }
 
-async function fetchReviewers(apiKey, urgency) {
+async function fetchReviewers(apiKey, urgency, failOnApiError = false) {
   const apiUrl = `https://cr-cab.com/api/reviewers/available?severity=${urgency}`;
-  
-  const response = await fetch(apiUrl, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const maxRetries = 2;
+  const retryDelays = [250, 750]; // ms
 
-  if (!response.ok) {
-    throw new Error(`CR Cab API error: ${response.status} ${response.statusText}`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const status = response.status;
+      const is5xx = status >= 500;
+      const is4xx = status >= 400 && status < 500;
+
+      if (!response.ok) {
+        // Handle 5xx and network errors with retry
+        if (is5xx && attempt < maxRetries) {
+          const delay = retryDelays[attempt];
+          core.info(`CR Cab API returned ${status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // If failOnApiError is true, throw for 4xx/5xx after retries exhausted
+        if (failOnApiError) {
+          throw new Error(`CR Cab API error: ${status} ${response.statusText}`);
+        }
+
+        // Handle errors gracefully when failOnApiError is false
+        // Log safe metadata only (no secrets, no full response body)
+        const errorMsg = is5xx 
+          ? `CR Cab API unavailable (status=${status}). Skipping comment and continuing.`
+          : `CR Cab API error (status=${status}). Skipping comment and continuing.`;
+        core.warning(errorMsg);
+        return null; // Return null to indicate graceful degradation
+      }
+
+      // Success - parse response
+      const data = await response.json();
+
+      // API returns { reviewers: [{ githubUsername: "..." }], count: N, severity: "..." }
+      let reviewerList = [];
+      
+      if (Array.isArray(data)) {
+        reviewerList = data;
+      } else if (data.reviewers && Array.isArray(data.reviewers)) {
+        reviewerList = data.reviewers;
+      } else {
+        throw new Error('Invalid API response format');
+      }
+
+      // Extract githubUsername from objects if needed
+      return reviewerList.map(reviewer => {
+        if (typeof reviewer === 'string') {
+          return reviewer;
+        }
+        if (reviewer && reviewer.githubUsername) {
+          return reviewer.githubUsername;
+        }
+        throw new Error(`Invalid reviewer format: ${JSON.stringify(reviewer)}`);
+      });
+    } catch (error) {
+      // Network errors, timeouts, etc.
+      if (attempt < maxRetries && (error.name === 'TypeError' || error.message.includes('fetch'))) {
+        const delay = retryDelays[attempt];
+        core.info(`Network error, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      // If failOnApiError is true, throw network errors
+      if (failOnApiError) {
+        throw new Error(`CR Cab API network error: ${error.message}`);
+      }
+
+      // Default: non-blocking for network errors
+      core.warning(`CR Cab API network error. Skipping comment and continuing.`);
+      return null;
+    }
   }
 
-  const data = await response.json();
-
-  // API returns { reviewers: [{ githubUsername: "..." }], count: N, severity: "..." }
-  let reviewerList = [];
-  
-  if (Array.isArray(data)) {
-    reviewerList = data;
-  } else if (data.reviewers && Array.isArray(data.reviewers)) {
-    reviewerList = data.reviewers;
-  } else {
-    throw new Error('Invalid API response format');
+  // Should not reach here, but handle gracefully
+  if (!failOnApiError) {
+    core.warning('CR Cab API unavailable after retries. Skipping comment and continuing.');
+    return null;
   }
-
-  // Extract githubUsername from objects if needed
-  return reviewerList.map(reviewer => {
-    if (typeof reviewer === 'string') {
-      return reviewer;
-    }
-    if (reviewer && reviewer.githubUsername) {
-      return reviewer.githubUsername;
-    }
-    throw new Error(`Invalid reviewer format: ${JSON.stringify(reviewer)}`);
-  });
+  throw new Error('CR Cab API unavailable after retries');
 }
 
 function selectRandomReviewer(reviewers, seed, prNumber) {
@@ -170,4 +238,14 @@ function selectRandomReviewer(reviewers, seed, prNumber) {
   return reviewers[index];
 }
 
-run();
+// Export functions for testing
+module.exports = {
+  detectUrgency,
+  fetchReviewers,
+  selectRandomReviewer,
+};
+
+// Run the action when executed directly (not when required for tests)
+if (require.main === module) {
+  run();
+}

@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "ncc build src/index.js -o dist",
-    "test": "echo 'Tests not yet implemented'",
+    "test": "jest",
     "lint": "echo 'Linting not yet configured'"
   },
   "keywords": [
@@ -21,7 +21,8 @@
     "@actions/github": "^6.0.0"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.1"
+    "@vercel/ncc": "^0.38.1",
+    "jest": "^29.7.0"
   },
   "engines": {
     "node": ">=24"
